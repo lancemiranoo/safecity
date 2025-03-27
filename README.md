@@ -21,7 +21,6 @@ db.status.insertMany([{ name: "Under Investigation" }, { name: "Resolved" }, { n
 
 // 2. Import users and reports from miscellaneous  
 safecity.users
-safecity.reports
 
 
 // 3. Install Dependency for Backend   
