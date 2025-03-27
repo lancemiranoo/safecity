@@ -31,6 +31,7 @@ safecity.users
 
 // 4. Install Dependency for Frontend  
 -- cd frontend/  
+-- rm -rf node_modules package-lock.json (Fix for permission denied)  
 -- npm install  
 -- npm install react-router-dom axios jwt-decode chart.js react-chartjs-2  
 
