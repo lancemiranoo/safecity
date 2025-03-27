@@ -1,43 +1,43 @@
 # safecity
-// Install Dependency for Frontend  
 
---  npm install  
---  npx create-react-app@latest frontend  
---  npm install react-router-dom  
---  npm install axios  
---  npm install jwt-decode  
---  npm install chart.js react-chartjs-2  
-
-// Install Dependency for Backend   
-
--- npm init -y  
--- npm install express mongoose bcryptjs jsonwebtoken dotenv cors body-parser  
-
-
+// 1. Prepare mongo DB (mongosh)  
 // Insert Values for Backend  
 In terminal run  
 
 -- mongosh  
--- use Safecity  
+-- use safecity  
 
 Run the following code to create options  
 
-For locations  
-db.locations.insertOne({ name: "North" })  
-db.locations.insertOne({ name: "South" })  
-db.locations.insertOne({ name: "East" })  
-db.locations.insertOne({ name: "West" })  
-db.locations.insertOne({ name: "NorthEast" })  
-db.locations.insertOne({ name: "NorthWest" })  
-db.locations.insertOne({ name: "SouthEast" })  
-db.locations.insertOne({ name: "SouthWest" })  
+// For locations
+db.locations.insertMany([{ name: "North" }, { name: "South" }, { name: "East" }, { name: "West" }, { name: "NorthEast" }, { name: "NorthWest" }, { name: "SouthEast" }, { name: "SouthWest" }])
 
-For categories  
-db.categories.insertOne({ name: "dangerous" })  
-db.categories.insertOne({ name: "neutral" })  
-db.categories.insertOne({ name: "safe" })  
+// For categories
+db.categories.insertMany([{ name: "Dangerous" }, { name: "Neutral" }, { name: "Safe" }])
 
-For status  
-db.statuses.insertOne({ name: "Under Investigation" })  
-db.statuses.insertOne({ name: "Resolved" })  
-db.statuses.insertOne({ name: "Dismissed" })  
+// For statuses
+db.status.insertMany([{ name: "Under Investigation" }, { name: "Resolved" }, { name: "Dismissed" }])
+
+
+// 2. Import users and reports from miscellaneous  
+safecity.users
+safecity.reports
+
+
+// 3. Install Dependency for Backend   
+-- cd backend/  
+-- npm init -y  
+-- npm install express mongoose bcryptjs jsonwebtoken dotenv cors body-parser  
+
+
+// 4. Install Dependency for Frontend  
+-- cd frontend/  
+-- npm install  
+-- npm install react-router-dom axios jwt-decode chart.js react-chartjs-2  
+
+
+// 5. Run backend and frontend  
+-- cd backend/  
+-- node server.js  
+-- cd frontend/  
+-- npm start  
