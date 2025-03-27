@@ -8,6 +8,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const statusRoutes = require('./routes/statusRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 
 // const dotenv = require('dotenv');
@@ -28,6 +29,7 @@ app.use('/api', reportRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/statuses', statusRoutes);
+app.use('/api/users', userRoutes);
 
 
 const PORT = process.env.PORT || 5000;

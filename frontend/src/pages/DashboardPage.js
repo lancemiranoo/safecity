@@ -15,7 +15,11 @@ const DashboardPage = () => {
     const [chartData, setChartData] = useState(null);
     const [reports, setReports] = useState([]);
     const [statuses, setStatuses] = useState([]);
+    const [locations, setLocations] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [selectedStatus, setSelectedStatus] = useState('All');
+    const [selectedLocation, setSelectedLocation] = useState('All');
+    const [selectedCategory, setSelectedCategory] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState('');
     const [userRole, setUserRole] = useState('citizen');
@@ -25,7 +29,6 @@ const DashboardPage = () => {
     const capitalize = (text) =>
         text ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : 'N/A';
 
-    // ✅ Fetch user info using token
     useEffect(() => {
         const fetchUserInfo = async () => {
             if (token) {
@@ -92,13 +95,19 @@ const DashboardPage = () => {
                 });
 
                 const allStatuses = new Set();
+                const allLocations = new Set();
+                const allCategories = new Set();
+
                 res.data.forEach((report) => {
-                    const status = report?.status?.name || 'Unknown';
-                    allStatuses.add(status);
+                    allStatuses.add(report?.status?.name || 'Unknown');
+                    allLocations.add(report?.location?.name || 'Unknown');
+                    allCategories.add(report?.category?.name || 'Unknown');
                 });
 
                 setReports(res.data);
                 setStatuses(['All', ...Array.from(allStatuses)]);
+                setLocations(['All', ...Array.from(allLocations)]);
+                setCategories(['All', ...Array.from(allCategories)]);
                 updateChartData(res.data);
             } catch (err) {
                 console.error(err);
@@ -136,11 +145,19 @@ const DashboardPage = () => {
             selectedStatus === 'All' ||
             r?.status?.name?.toLowerCase() === selectedStatus.toLowerCase();
 
-        const matchesSearch = r?.category?.name
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase());
+        const matchesLocation =
+            selectedLocation === 'All' ||
+            r?.location?.name?.toLowerCase() === selectedLocation.toLowerCase();
 
-        return matchesStatus && matchesSearch;
+        const matchesCategory =
+            selectedCategory === 'All' ||
+            r?.category?.name?.toLowerCase() === selectedCategory.toLowerCase();
+
+        const matchesSearch =
+            r?.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            r?.user?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        return matchesStatus && matchesLocation && matchesCategory && matchesSearch;
     });
 
     const thStyle = {
@@ -168,44 +185,51 @@ const DashboardPage = () => {
                 }}
             >
                 <h1 style={{ margin: 0 }}>SafeCity</h1>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    {token && (
-                        <span style={{ fontSize: '14px', fontStyle: 'italic' }}>
-                            Hello, <strong>{userName}</strong>
-                        </span>
-                    )}
-                    {token ? (
-                        <button
-                            style={{
-                                backgroundColor: '#e74c3c',
-                                color: 'white',
-                                border: 'none',
-                                padding: '8px 16px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                            }}
-                            onClick={() => {
+                <div
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        gap: '10px',
+                        minWidth: '200px',
+                    }}
+                >
+                    <span
+                        style={{
+                            fontSize: '14px',
+                            fontStyle: 'italic',
+                            minWidth: '100px',
+                            textAlign: 'right',
+                        }}
+                    >
+                        {token ? (
+                            <>
+                                Hello, <strong>{userName}</strong>
+                            </>
+                        ) : null}
+                    </span>
+                    <button
+                        style={{
+                            backgroundColor: token ? '#e74c3c' : '#3498db',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            width: '100px',
+                            textAlign: 'center',
+                        }}
+                        onClick={() => {
+                            if (token) {
                                 localStorage.removeItem('token');
                                 window.location.reload();
-                            }}
-                        >
-                            Logout
-                        </button>
-                    ) : (
-                        <button
-                            style={{
-                                backgroundColor: '#3498db',
-                                color: 'white',
-                                border: 'none',
-                                padding: '8px 16px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                            }}
-                            onClick={() => (window.location.href = '/login')}
-                        >
-                            Login
-                        </button>
-                    )}
+                            } else {
+                                window.location.href = '/login';
+                            }
+                        }}
+                    >
+                        {token ? 'Logout' : 'Login'}
+                    </button>
                 </div>
             </nav>
 
@@ -280,7 +304,7 @@ const DashboardPage = () => {
                             >
                                 <input
                                     type="text"
-                                    placeholder="Search category..."
+                                    placeholder="Search description or username..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     style={{
@@ -291,6 +315,40 @@ const DashboardPage = () => {
                                         minWidth: '200px',
                                     }}
                                 />
+                                <select
+                                    value={selectedCategory}
+                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                    style={{
+                                        padding: '8px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #ccc',
+                                        flex: '1',
+                                        minWidth: '200px',
+                                    }}
+                                >
+                                    {categories.map((cat) => (
+                                        <option key={cat} value={cat}>
+                                            {capitalize(cat)}
+                                        </option>
+                                    ))}
+                                </select>
+                                <select
+                                    value={selectedLocation}
+                                    onChange={(e) => setSelectedLocation(e.target.value)}
+                                    style={{
+                                        padding: '8px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #ccc',
+                                        flex: '1',
+                                        minWidth: '200px',
+                                    }}
+                                >
+                                    {locations.map((loc) => (
+                                        <option key={loc} value={loc}>
+                                            {capitalize(loc)}
+                                        </option>
+                                    ))}
+                                </select>
                                 <select
                                     value={selectedStatus}
                                     onChange={(e) => setSelectedStatus(e.target.value)}
@@ -317,6 +375,7 @@ const DashboardPage = () => {
                                         <th style={thStyle}>Location</th>
                                         <th style={thStyle}>Status</th>
                                         <th style={thStyle}>Description</th>
+                                        <th style={thStyle}>Reported By</th>
                                         <th style={thStyle}>Reported On</th>
                                         {(userRole === 'admin' || userRole === 'officer') && (
                                             <th style={thStyle}></th>
@@ -331,6 +390,7 @@ const DashboardPage = () => {
                                                 <td style={tdStyle}>{capitalize(report?.location?.name)}</td>
                                                 <td style={tdStyle}>{capitalize(report?.status?.name)}</td>
                                                 <td style={tdStyle}>{report?.description || 'N/A'}</td>
+                                                <td style={tdStyle}>{report?.user?.name || 'N/A'}</td>
                                                 <td style={tdStyle}>
                                                     {report?.reported
                                                         ? new Date(report.reported).toLocaleDateString()
@@ -375,7 +435,7 @@ const DashboardPage = () => {
                                     ) : (
                                         <tr>
                                             <td
-                                                colSpan={userRole === 'admin' || userRole === 'officer' ? 6 : 5}
+                                                colSpan={userRole === 'admin' || userRole === 'officer' ? 7 : 6}
                                                 style={{
                                                     textAlign: 'center',
                                                     padding: '20px',
