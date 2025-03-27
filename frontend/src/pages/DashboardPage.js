@@ -19,20 +19,36 @@ const DashboardPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState('');
     const [userRole, setUserRole] = useState('citizen');
+    const [userName, setUserName] = useState('');
     const token = localStorage.getItem('token');
 
     const capitalize = (text) =>
         text ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : 'N/A';
 
+    // ✅ Fetch user info using token
     useEffect(() => {
-        if (token) {
-            try {
-                const decoded = jwtDecode(token);
-                setUserRole(decoded?.role || 'citizen');
-            } catch (err) {
-                console.error('Failed to decode token:', err);
+        const fetchUserInfo = async () => {
+            if (token) {
+                try {
+                    const decoded = jwtDecode(token);
+                    const userId = decoded?.id || decoded?._id;
+
+                    if (!userId) return;
+
+                    const res = await axios.get(`http://localhost:5000/api/users/${userId}`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+
+                    const user = res.data;
+                    setUserName(user.name || user.email || 'User');
+                    setUserRole(user.role || 'citizen');
+                } catch (err) {
+                    console.error('Failed to fetch user data:', err);
+                }
             }
-        }
+        };
+
+        fetchUserInfo();
     }, [token]);
 
     const updateChartData = (reportList) => {
@@ -152,7 +168,12 @@ const DashboardPage = () => {
                 }}
             >
                 <h1 style={{ margin: 0 }}>SafeCity</h1>
-                <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    {token && (
+                        <span style={{ fontSize: '14px', fontStyle: 'italic' }}>
+                            Hello, <strong>{userName}</strong>
+                        </span>
+                    )}
                     {token ? (
                         <button
                             style={{
@@ -234,7 +255,6 @@ const DashboardPage = () => {
                         <div style={{ marginTop: '40px' }}>
                             <h3 style={{ textAlign: 'center' }}>All Reports</h3>
 
-                            {/* 🔗 Create New Link */}
                             <div style={{ margin: '10px 0', textAlign: 'left' }}>
                                 <a
                                     href="/create-report"
@@ -248,7 +268,6 @@ const DashboardPage = () => {
                                 </a>
                             </div>
 
-                            {/* 🔍 Search & 🔽 Status Filter Row (Symmetrical) */}
                             <div
                                 style={{
                                     marginBottom: '15px',
