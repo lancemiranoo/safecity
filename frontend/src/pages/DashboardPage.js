@@ -17,17 +17,22 @@ const DashboardPage = () => {
     const [statuses, setStatuses] = useState([]);
     const [locations, setLocations] = useState([]);
     const [categories, setCategories] = useState([]);
-    const [selectedStatus, setSelectedStatus] = useState('All');
-    const [selectedLocation, setSelectedLocation] = useState('All');
-    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [selectedStatus, setSelectedStatus] = useState('All Status');
+    const [selectedLocation, setSelectedLocation] = useState('All Location');
+    const [selectedCategory, setSelectedCategory] = useState('All Category');
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState('');
     const [userRole, setUserRole] = useState('citizen');
     const [userName, setUserName] = useState('');
     const token = localStorage.getItem('token');
 
-    const capitalize = (text) =>
-        text ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : 'N/A';
+    const capitalize = (text) => {
+        if (!text) return 'N/A';
+        return text
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    };
 
     useEffect(() => {
         const fetchUserInfo = async () => {
@@ -35,7 +40,6 @@ const DashboardPage = () => {
                 try {
                     const decoded = jwtDecode(token);
                     const userId = decoded?.id || decoded?._id;
-
                     if (!userId) return;
 
                     const res = await axios.get(`http://localhost:5000/api/users/${userId}`, {
@@ -61,15 +65,12 @@ const DashboardPage = () => {
             statusCounts[status] = (statusCounts[status] || 0) + 1;
         });
 
-        const statusLabels = Object.keys(statusCounts);
-        const statusValues = Object.values(statusCounts);
-
         setChartData({
-            labels: statusLabels,
+            labels: Object.keys(statusCounts),
             datasets: [
                 {
                     label: 'Reports by Status',
-                    data: statusValues,
+                    data: Object.values(statusCounts),
                     backgroundColor: [
                         '#82ca9d',
                         '#f39c12',
@@ -105,9 +106,9 @@ const DashboardPage = () => {
                 });
 
                 setReports(res.data);
-                setStatuses(['All', ...Array.from(allStatuses)]);
-                setLocations(['All', ...Array.from(allLocations)]);
-                setCategories(['All', ...Array.from(allCategories)]);
+                setStatuses(['All Status', ...Array.from(allStatuses)]);
+                setLocations(['All Location', ...Array.from(allLocations)]);
+                setCategories(['All Category', ...Array.from(allCategories)]);
                 updateChartData(res.data);
             } catch (err) {
                 console.error(err);
@@ -119,17 +120,16 @@ const DashboardPage = () => {
     }, [token]);
 
     const handleDelete = async (id) => {
-        const confirm = window.confirm('Are you sure you want to delete this report?');
-        if (!confirm) return;
+        if (!window.confirm('Are you sure you want to delete this report?')) return;
 
         try {
             await axios.delete(`http://localhost:5000/api/reports/${id}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            const updatedReports = reports.filter((r) => r._id !== id);
-            setReports(updatedReports);
-            updateChartData(updatedReports);
+            const updated = reports.filter((r) => r._id !== id);
+            setReports(updated);
+            updateChartData(updated);
         } catch (err) {
             console.error('Delete failed:', err.response?.data || err.message);
             alert('Failed to delete report.');
@@ -142,15 +142,15 @@ const DashboardPage = () => {
 
     const filteredReports = reports.filter((r) => {
         const matchesStatus =
-            selectedStatus === 'All' ||
+            selectedStatus === 'All Status' ||
             r?.status?.name?.toLowerCase() === selectedStatus.toLowerCase();
 
         const matchesLocation =
-            selectedLocation === 'All' ||
+            selectedLocation === 'All Location' ||
             r?.location?.name?.toLowerCase() === selectedLocation.toLowerCase();
 
         const matchesCategory =
-            selectedCategory === 'All' ||
+            selectedCategory === 'All Category' ||
             r?.category?.name?.toLowerCase() === selectedCategory.toLowerCase();
 
         const matchesSearch =
@@ -174,58 +174,15 @@ const DashboardPage = () => {
 
     return (
         <>
-            <nav
-                style={{
-                    backgroundColor: '#2c3e50',
-                    color: 'white',
-                    padding: '15px 30px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                }}
-            >
+            <nav style={{ backgroundColor: '#2c3e50', color: 'white', padding: '15px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h1 style={{ margin: 0 }}>SafeCity</h1>
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'flex-end',
-                        gap: '10px',
-                        minWidth: '200px',
-                    }}
-                >
-                    <span
-                        style={{
-                            fontSize: '14px',
-                            fontStyle: 'italic',
-                            minWidth: '100px',
-                            textAlign: 'right',
-                        }}
-                    >
-                        {token ? (
-                            <>
-                                Hello, <strong>{userName}</strong>
-                            </>
-                        ) : null}
-                    </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', minWidth: '200px' }}>
+                    {token && <span style={{ fontSize: '14px', fontStyle: 'italic' }}>Hello, <strong>{userName}</strong></span>}
                     <button
-                        style={{
-                            backgroundColor: token ? '#e74c3c' : '#3498db',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            width: '100px',
-                            textAlign: 'center',
-                        }}
+                        style={{ backgroundColor: token ? '#e74c3c' : '#3498db', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', width: '100px', textAlign: 'center' }}
                         onClick={() => {
-                            if (token) {
-                                localStorage.removeItem('token');
-                                window.location.reload();
-                            } else {
-                                window.location.href = '/login';
-                            }
+                            token ? localStorage.removeItem('token') : (window.location.href = '/login');
+                            if (token) window.location.reload();
                         }}
                     >
                         {token ? 'Logout' : 'Login'}
@@ -238,41 +195,10 @@ const DashboardPage = () => {
                     <h2 style={{ textAlign: 'center' }}>Report Summary</h2>
                     {error && <p style={{ color: 'red' }}>{error}</p>}
 
-                    {token ? (
-                        chartData && (
-                            <div
-                                style={{
-                                    width: '100%',
-                                    maxWidth: '600px',
-                                    margin: '0 auto',
-                                    height: '350px',
-                                }}
-                            >
-                                <Pie
-                                    data={chartData}
-                                    options={{
-                                        maintainAspectRatio: false,
-                                        responsive: true,
-                                        plugins: {
-                                            legend: {
-                                                position: 'bottom',
-                                                align: 'center',
-                                                labels: {
-                                                    usePointStyle: true,
-                                                    boxWidth: 12,
-                                                    padding: 15,
-                                                },
-                                            },
-                                            tooltip: { enabled: true },
-                                        },
-                                    }}
-                                />
-                            </div>
-                        )
-                    ) : (
-                        <p style={{ textAlign: 'center' }}>
-                            Please log in to view the dashboard.
-                        </p>
+                    {token && chartData && (
+                        <div style={{ width: '100%', maxWidth: '600px', margin: '0 auto', height: '350px' }}>
+                            <Pie data={chartData} options={{ maintainAspectRatio: false, responsive: true, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 12, padding: 15 } }, tooltip: { enabled: true } } }} />
+                        </div>
                     )}
 
                     {token && (
@@ -280,170 +206,78 @@ const DashboardPage = () => {
                             <h3 style={{ textAlign: 'center' }}>All Reports</h3>
 
                             <div style={{ margin: '10px 0', textAlign: 'left' }}>
-                                <a
-                                    href="/create-report"
-                                    style={{
-                                        color: '#3498db',
-                                        fontSize: '16px',
-                                        textDecoration: 'none',
-                                    }}
-                                >
-                                    Create New
-                                </a>
+                                <a href="/create-report" style={{ color: '#3498db', fontSize: '16px', textDecoration: 'none' }}>Create New</a>
                             </div>
 
-                            <div
-                                style={{
-                                    marginBottom: '15px',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    flexWrap: 'wrap',
-                                    gap: '10px',
-                                }}
-                            >
+                            <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                                 <input
                                     type="text"
                                     placeholder="Search description or username..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{
-                                        padding: '8px',
-                                        borderRadius: '4px',
-                                        border: '1px solid #ccc',
-                                        flex: '1',
-                                        minWidth: '200px',
-                                    }}
+                                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', flex: '1', minWidth: '200px' }}
                                 />
-                                <select
-                                    value={selectedCategory}
-                                    onChange={(e) => setSelectedCategory(e.target.value)}
-                                    style={{
-                                        padding: '8px',
-                                        borderRadius: '4px',
-                                        border: '1px solid #ccc',
-                                        flex: '1',
-                                        minWidth: '200px',
-                                    }}
-                                >
-                                    {categories.map((cat) => (
-                                        <option key={cat} value={cat}>
-                                            {capitalize(cat)}
-                                        </option>
-                                    ))}
-                                </select>
-                                <select
-                                    value={selectedLocation}
-                                    onChange={(e) => setSelectedLocation(e.target.value)}
-                                    style={{
-                                        padding: '8px',
-                                        borderRadius: '4px',
-                                        border: '1px solid #ccc',
-                                        flex: '1',
-                                        minWidth: '200px',
-                                    }}
-                                >
-                                    {locations.map((loc) => (
-                                        <option key={loc} value={loc}>
-                                            {capitalize(loc)}
-                                        </option>
-                                    ))}
-                                </select>
-                                <select
-                                    value={selectedStatus}
-                                    onChange={(e) => setSelectedStatus(e.target.value)}
-                                    style={{
-                                        padding: '8px',
-                                        borderRadius: '4px',
-                                        border: '1px solid #ccc',
-                                        flex: '1',
-                                        minWidth: '200px',
-                                    }}
-                                >
-                                    {statuses.map((stat) => (
-                                        <option key={stat} value={stat}>
-                                            {capitalize(stat)}
-                                        </option>
-                                    ))}
-                                </select>
+                                {[{
+                                    value: selectedCategory,
+                                    setter: setSelectedCategory,
+                                    options: categories
+                                }, {
+                                    value: selectedLocation,
+                                    setter: setSelectedLocation,
+                                    options: locations
+                                }, {
+                                    value: selectedStatus,
+                                    setter: setSelectedStatus,
+                                    options: statuses
+                                }].map(({ value, setter, options }, i) => (
+                                    <select
+                                        key={i}
+                                        value={value}
+                                        onChange={(e) => setter(e.target.value)}
+                                        style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', flex: '1', minWidth: '200px' }}
+                                    >
+                                        {options.map((opt) => (
+                                            <option key={opt} value={opt}>{capitalize(opt)}</option>
+                                        ))}
+                                    </select>
+                                ))}
                             </div>
 
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead>
                                     <tr>
+                                        <th style={thStyle}>Name</th>
                                         <th style={thStyle}>Category</th>
                                         <th style={thStyle}>Location</th>
                                         <th style={thStyle}>Status</th>
                                         <th style={thStyle}>Description</th>
-                                        <th style={thStyle}>Reported By</th>
                                         <th style={thStyle}>Reported On</th>
-                                        {(userRole === 'admin' || userRole === 'officer') && (
-                                            <th style={thStyle}></th>
-                                        )}
+                                        {(userRole === 'admin' || userRole === 'officer') && <th style={thStyle}></th>}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredReports.length > 0 ? (
-                                        filteredReports.map((report) => (
-                                            <tr key={report._id}>
-                                                <td style={tdStyle}>{capitalize(report?.category?.name)}</td>
-                                                <td style={tdStyle}>{capitalize(report?.location?.name)}</td>
-                                                <td style={tdStyle}>{capitalize(report?.status?.name)}</td>
-                                                <td style={tdStyle}>{report?.description || 'N/A'}</td>
-                                                <td style={tdStyle}>{report?.user?.name || 'N/A'}</td>
+                                    {filteredReports.length > 0 ? filteredReports.map((report) => (
+                                        <tr key={report._id}>
+                                            <td style={tdStyle}>{capitalize(report?.user?.name)}</td>
+                                            <td style={tdStyle}>{capitalize(report?.category?.name)}</td>
+                                            <td style={tdStyle}>{capitalize(report?.location?.name)}</td>
+                                            <td style={tdStyle}>{capitalize(report?.status?.name)}</td>
+                                            <td style={tdStyle}>{report?.description || 'N/A'}</td>
+                                            <td style={tdStyle}>{report?.reported ? new Date(report.reported).toLocaleDateString() : 'N/A'}</td>
+                                            {(userRole === 'admin' || userRole === 'officer') && (
                                                 <td style={tdStyle}>
-                                                    {report?.reported
-                                                        ? new Date(report.reported).toLocaleDateString()
-                                                        : 'N/A'}
+                                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                                        <button onClick={() => handleEdit(report._id)} style={{ backgroundColor: '#f39c12', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer' }}>Edit</button>
+                                                        {userRole === 'admin' && (
+                                                            <button onClick={() => handleDelete(report._id)} style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer' }}>Delete</button>
+                                                        )}
+                                                    </div>
                                                 </td>
-                                                {(userRole === 'admin' || userRole === 'officer') && (
-                                                    <td style={tdStyle}>
-                                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                                            <button
-                                                                onClick={() => handleEdit(report._id)}
-                                                                style={{
-                                                                    backgroundColor: '#f39c12',
-                                                                    color: 'white',
-                                                                    border: 'none',
-                                                                    padding: '6px 10px',
-                                                                    borderRadius: '4px',
-                                                                    cursor: 'pointer',
-                                                                }}
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            {userRole === 'admin' && (
-                                                                <button
-                                                                    onClick={() => handleDelete(report._id)}
-                                                                    style={{
-                                                                        backgroundColor: '#e74c3c',
-                                                                        color: 'white',
-                                                                        border: 'none',
-                                                                        padding: '6px 10px',
-                                                                        borderRadius: '4px',
-                                                                        cursor: 'pointer',
-                                                                    }}
-                                                                >
-                                                                    Delete
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        ))
-                                    ) : (
+                                            )}
+                                        </tr>
+                                    )) : (
                                         <tr>
-                                            <td
-                                                colSpan={userRole === 'admin' || userRole === 'officer' ? 7 : 6}
-                                                style={{
-                                                    textAlign: 'center',
-                                                    padding: '20px',
-                                                    color: '#999',
-                                                }}
-                                            >
-                                                No reports found.
-                                            </td>
+                                            <td colSpan={userRole === 'admin' || userRole === 'officer' ? 7 : 6} style={{ textAlign: 'center', padding: '20px', color: '#999' }}>No reports found.</td>
                                         </tr>
                                     )}
                                 </tbody>
