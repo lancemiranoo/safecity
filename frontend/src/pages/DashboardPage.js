@@ -22,7 +22,7 @@ const DashboardPage = () => {
     const [selectedCategory, setSelectedCategory] = useState('All Category');
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState('');
-    const [userRole, setUserRole] = useState('citizen');
+    const [userRole, setUserRole] = useState('');
     const [userName, setUserName] = useState('');
     const token = localStorage.getItem('token');
 
@@ -40,7 +40,6 @@ const DashboardPage = () => {
                 try {
                     const decoded = jwtDecode(token);
                     const userId = decoded?.id || decoded?._id;
-                    if (!userId) return;
 
                     const res = await axios.get(`http://localhost:5000/api/users/${userId}`, {
                         headers: { Authorization: `Bearer ${token}` },
@@ -48,7 +47,7 @@ const DashboardPage = () => {
 
                     const user = res.data;
                     setUserName(user.name || user.email || 'User');
-                    setUserRole(user.role || 'citizen');
+                    setUserRole(user.role || '');
                 } catch (err) {
                     console.error('Failed to fetch user data:', err);
                 }
@@ -87,12 +86,10 @@ const DashboardPage = () => {
     };
 
     useEffect(() => {
-        if (!token) return;
-
         const fetchReports = async () => {
             try {
                 const res = await axios.get('http://localhost:5000/api/reports', {
-                    headers: { Authorization: `Bearer ${token}` },
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
                 });
 
                 const allStatuses = new Set();
@@ -119,6 +116,10 @@ const DashboardPage = () => {
         fetchReports();
     }, [token]);
 
+    const handleEdit = (id) => {
+        window.location.href = `/edit-report/${id}`;
+    };
+
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this report?')) return;
 
@@ -134,10 +135,6 @@ const DashboardPage = () => {
             console.error('Delete failed:', err.response?.data || err.message);
             alert('Failed to delete report.');
         }
-    };
-
-    const handleEdit = (id) => {
-        window.location.href = `/edit-report/${id}`;
     };
 
     const filteredReports = reports.filter((r) => {
@@ -176,13 +173,17 @@ const DashboardPage = () => {
         <>
             <nav style={{ backgroundColor: '#2c3e50', color: 'white', padding: '15px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h1 style={{ margin: 0 }}>SafeCity</h1>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', minWidth: '200px' }}>
-                    {token && <span style={{ fontSize: '14px', fontStyle: 'italic' }}>Hello, <strong>{userName}</strong></span>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {token && <span style={{ fontSize: '14px' }}>Hello, <strong>{userName}</strong></span>}
                     <button
-                        style={{ backgroundColor: token ? '#e74c3c' : '#3498db', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', width: '100px', textAlign: 'center' }}
+                        style={{ backgroundColor: token ? '#e74c3c' : '#3498db', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px' }}
                         onClick={() => {
-                            token ? localStorage.removeItem('token') : (window.location.href = '/login');
-                            if (token) window.location.reload();
+                            if (token) {
+                                localStorage.removeItem('token');
+                                window.location.reload();
+                            } else {
+                                window.location.href = '/login';
+                            }
                         }}
                     >
                         {token ? 'Logout' : 'Login'}
@@ -195,95 +196,121 @@ const DashboardPage = () => {
                     <h2 style={{ textAlign: 'center' }}>Report Summary</h2>
                     {error && <p style={{ color: 'red' }}>{error}</p>}
 
-                    {token && chartData && (
+                    {chartData && (
                         <div style={{ width: '100%', maxWidth: '600px', margin: '0 auto', height: '350px' }}>
-                            <Pie data={chartData} options={{ maintainAspectRatio: false, responsive: true, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 12, padding: 15 } }, tooltip: { enabled: true } } }} />
+                            <Pie data={chartData} options={{
+                                maintainAspectRatio: false,
+                                responsive: true,
+                                plugins: {
+                                    legend: {
+                                        position: 'bottom',
+                                        labels: {
+                                            usePointStyle: true,
+                                            boxWidth: 12,
+                                            padding: 15
+                                        }
+                                    },
+                                    tooltip: { enabled: true }
+                                }
+                            }} />
                         </div>
                     )}
 
-                    {token && (
-                        <div style={{ marginTop: '40px' }}>
-                            <h3 style={{ textAlign: 'center' }}>All Reports</h3>
+                    <div style={{ marginTop: '40px' }}>
+                        <h3 style={{ textAlign: 'center' }}>All Reports</h3>
 
+                        {token && (
                             <div style={{ margin: '10px 0', textAlign: 'left' }}>
                                 <a href="/create-report" style={{ color: '#3498db', fontSize: '16px', textDecoration: 'none' }}>Create New</a>
                             </div>
+                        )}
 
-                            <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                                <input
-                                    type="text"
-                                    placeholder="Search description or username..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                        <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                            <input
+                                type="text"
+                                placeholder="Search description or username..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', flex: '1', minWidth: '200px' }}
+                            />
+                            {[{
+                                value: selectedCategory,
+                                setter: setSelectedCategory,
+                                options: categories
+                            }, {
+                                value: selectedLocation,
+                                setter: setSelectedLocation,
+                                options: locations
+                            }, {
+                                value: selectedStatus,
+                                setter: setSelectedStatus,
+                                options: statuses
+                            }].map(({ value, setter, options }, i) => (
+                                <select
+                                    key={i}
+                                    value={value}
+                                    onChange={(e) => setter(e.target.value)}
                                     style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', flex: '1', minWidth: '200px' }}
-                                />
-                                {[{
-                                    value: selectedCategory,
-                                    setter: setSelectedCategory,
-                                    options: categories
-                                }, {
-                                    value: selectedLocation,
-                                    setter: setSelectedLocation,
-                                    options: locations
-                                }, {
-                                    value: selectedStatus,
-                                    setter: setSelectedStatus,
-                                    options: statuses
-                                }].map(({ value, setter, options }, i) => (
-                                    <select
-                                        key={i}
-                                        value={value}
-                                        onChange={(e) => setter(e.target.value)}
-                                        style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', flex: '1', minWidth: '200px' }}
-                                    >
-                                        {options.map((opt) => (
-                                            <option key={opt} value={opt}>{capitalize(opt)}</option>
-                                        ))}
-                                    </select>
-                                ))}
-                            </div>
-
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr>
-                                        <th style={thStyle}>Name</th>
-                                        <th style={thStyle}>Category</th>
-                                        <th style={thStyle}>Location</th>
-                                        <th style={thStyle}>Status</th>
-                                        <th style={thStyle}>Description</th>
-                                        <th style={thStyle}>Reported On</th>
-                                        {(userRole === 'admin' || userRole === 'officer') && <th style={thStyle}></th>}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredReports.length > 0 ? filteredReports.map((report) => (
-                                        <tr key={report._id}>
-                                            <td style={tdStyle}>{capitalize(report?.user?.name)}</td>
-                                            <td style={tdStyle}>{capitalize(report?.category?.name)}</td>
-                                            <td style={tdStyle}>{capitalize(report?.location?.name)}</td>
-                                            <td style={tdStyle}>{capitalize(report?.status?.name)}</td>
-                                            <td style={tdStyle}>{report?.description || 'N/A'}</td>
-                                            <td style={tdStyle}>{report?.reported ? new Date(report.reported).toLocaleDateString() : 'N/A'}</td>
-                                            {(userRole === 'admin' || userRole === 'officer') && (
-                                                <td style={tdStyle}>
-                                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                                        <button onClick={() => handleEdit(report._id)} style={{ backgroundColor: '#f39c12', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer' }}>Edit</button>
-                                                        {userRole === 'admin' && (
-                                                            <button onClick={() => handleDelete(report._id)} style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer' }}>Delete</button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            )}
-                                        </tr>
-                                    )) : (
-                                        <tr>
-                                            <td colSpan={userRole === 'admin' || userRole === 'officer' ? 7 : 6} style={{ textAlign: 'center', padding: '20px', color: '#999' }}>No reports found.</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                >
+                                    {options.map((opt) => (
+                                        <option key={opt} value={opt}>{capitalize(opt)}</option>
+                                    ))}
+                                </select>
+                            ))}
                         </div>
-                    )}
+
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr>
+                                    <th style={thStyle}>Name</th>
+                                    <th style={thStyle}>Category</th>
+                                    <th style={thStyle}>Location</th>
+                                    <th style={thStyle}>Status</th>
+                                    <th style={thStyle}>Description</th>
+                                    <th style={thStyle}>Reported On</th>
+                                    {token && <th style={thStyle}></th>}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredReports.length > 0 ? filteredReports.map((report) => (
+                                    <tr key={report._id}>
+                                        <td style={tdStyle}>{capitalize(report?.user?.name)}</td>
+                                        <td style={tdStyle}>{capitalize(report?.category?.name)}</td>
+                                        <td style={tdStyle}>{capitalize(report?.location?.name)}</td>
+                                        <td style={tdStyle}>{capitalize(report?.status?.name)}</td>
+                                        <td style={tdStyle}>{report?.description || 'N/A'}</td>
+                                        <td style={tdStyle}>{report?.reported ? new Date(report.reported).toLocaleDateString() : 'N/A'}</td>
+                                        {token && (
+                                            <td style={tdStyle}>
+                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                    {(userRole === 'admin' || userRole === 'officer') && (
+                                                        <button
+                                                            onClick={() => handleEdit(report._id)}
+                                                            style={{ backgroundColor: '#f39c12', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer' }}
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDelete(report._id)}
+                                                        style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer' }}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
+                                    </tr>
+                                )) : (
+                                    <tr>
+                                        <td colSpan={token ? 7 : 6} style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                                            No reports found.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </>

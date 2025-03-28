@@ -7,7 +7,7 @@ const authorize = require('../middleware/authMiddleware');  // Import the middle
 router.post('/reports', authorize(['citizen', 'officer', 'admin']), reportController.createReport);
 
 // GET route to get all reports (accessible by officer, admin)
-router.get('/reports', authorize(['citizen', 'officer', 'admin']), reportController.getReports);
+router.get('/reports', reportController.getReports);
 
 // Get report by ID (accessible by officer, admin)
 router.get('/reports/:id', authorize(['officer', 'admin']), reportController.getReportById);
@@ -19,7 +19,7 @@ router.put('/reports/:id', authorize(['officer', 'admin']), reportController.upd
 // router.put('/reports/:id/user', authorize(['admin']), reportController.updateUser);
 
 // DELETE route to delete a report (accessible by admin)
-router.delete('/reports/:id', authorize(['admin']), reportController.deleteReport);
+router.delete('/reports/:id', authorize(['citizen', 'officer', 'admin']), reportController.deleteReport);
 
 module.exports = router;
 
